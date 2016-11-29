@@ -7,6 +7,6 @@
   <rtpaudio puerto="4444"/>
   <regproxy ip="127.0.0.1"
             puerto="6600"/>
-  <log      path="/Desktop/ptavi-pfinal/ua2.xml"/>
+  <log      path="/Desktop/ptavi-pfinal/log_ua1.xml"/>
   <audio    path="/Desktop/ptavi-pfinal/cancion.mp3"/>
 </config>
