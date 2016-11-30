@@ -43,10 +43,11 @@ class ConfigHandler(ContentHandler):
         elif name == 'audio':
             path_audio = attr.get('path', "")
             self.myconfig.append(path_audio)
-    
+
     def get_config(self):
         return self.myconfig
-    
+
+  
 class SIPHandler(socketserver.DatagramRequestHandler):
     """Main handler to send a RTP audio stream."""
 
@@ -73,7 +74,9 @@ class SIPHandler(socketserver.DatagramRequestHandler):
                 self.wfile.write(b"SIP/2.0 405 Method Not Allowed\r\n\r\n")
         print(line_str)
 
+
 def actual_time():
+    """Format time YYYYMMDDHHMMSS for log purposes."""
     timenow = time.strftime("%Y%m%d%H%M%S", time.gmtime(time.time()))
     return timenow
 
