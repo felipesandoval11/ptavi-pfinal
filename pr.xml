@@ -4,6 +4,6 @@
             ip="127.0.0.1"
             puerto="8450"/>
   <database path="/Users/felipesandoval/Desktop/ptavi-pfinal/users.txt"
-            passwdpath="/Users/felipesandoval/Desktop/ptavi-pfinal/passwords"/>
+            passwdpath="/Users/felipesandoval/Desktop/ptavi-pfinal/passwords.txt"/>
   <log      path="/Users/felipesandoval/Desktop/ptavi-pfinal/log_pr.txt"/>
 </config>
