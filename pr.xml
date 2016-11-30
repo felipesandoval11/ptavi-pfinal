@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<config>
+  <server   name="AmazingProxyServer"
+            ip="127.0.0.1"
+            puerto="8450"/>
+  <database path="/Users/felipesandoval/Desktop/ptavi-pfinal/users.txt"
+            passwdpath="/Users/felipesandoval/Desktop/ptavi-pfinal/passwords"/>
+  <log      path="/Users/felipesandoval/Desktop/ptavi-pfinal/log_pr.txt"/>
+</config>
