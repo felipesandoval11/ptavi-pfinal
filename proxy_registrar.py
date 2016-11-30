@@ -1,24 +1,25 @@
 #!/usr/bin/python3
 # -*- coding: utf-8 -*-
 # Made by Felipe Sandoval Sibada
-"""Proxy Registrar."""
+"""Proxy Registrar that serves as a middle term in a SIP/RTP connection."""
 
 from xml.sax import make_parser
 from xml.sax.handler import ContentHandler
 import time
 import sys
 import socketserver
+import random
 
 
 class ConfigHandler(ContentHandler):
-    """For handling Configuration entries"""
+    """For handling configuration entries."""
 
     def __init__(self):
-        """Constructor. Inicializamos las variables"""
+        """My list of configurations."""
         self.myconfig = []
 
     def startElement(self, element, attr):
-        """Método que se llama cuando se abre una etiqueta"""
+        """Method to save attributes."""
         if element == "server":       # one way to do it
             name = attr.get('name', "")
             if name == "":
@@ -38,26 +39,47 @@ class ConfigHandler(ContentHandler):
         elif element == 'log':
             path = attr.get('path', "")
             self.myconfig.append(path)
-    
+
     def get_config(self):
+        """Return a configuration list for my purposes."""
         return self.myconfig
 
 class SIPHandler(socketserver.DatagramRequestHandler):
-    """Main handler to send a RTP audio stream."""
+    """Main handler of SIP responses."""
 
     def handle(self):
         """Handler to manage incoming users SIP request."""
         line = self.rfile.read()
         line_str = line.decode('utf-8')
         if line_str.split(" ")[0] == "REGISTER":
-            self.wfile.write(b"SIP/2.0 401 Unauthorized\r\n\r\n")
+            if "Digest" not in line_str.split(" "):
+                nonce = str(random.randint(000000000000000000000, 
+                                           999999999999999999999))
+            
+                self.wfile.write(b"SIP/2.0 401 Unauthorized\r\n\r\n")
+                self.wfile.write(bytes("WWW Authenticate: Digest nonce=" + 
+                                       nonce + "\r\n", 'utf-8'))
+            else:
+            # Making my users text file
+                user = line_str.split(":")[1]
+                port = line_str.split(":")[2].split(" ")[0]
+                expire = line_str.split(" ")[3].split("\r\n")[0]
+                reg_time = time.strftime("%Y-%m-%d %H:%M:%S", 
+                                         time.gmtime(time.time()))
+                registered = user + " 127.0.0.1 " + port + " " + reg_time +\
+                             " " + expire + "\n"
+            # Making my users text file
+                try:
+                    users_file = open(config[3])
+                    users_file = open(config[3], "a")
+                    users_file.write(registered)
+                except FileNotFoundError:   #  When the file does not exists.
+                    users_file = open(config[3], "w") 
+                    users_file.write(registered)
         if line_str.split(" ")[0] == "INVITE":
             self.wfile.write(b"SIP/2.0 100 Trying\r\n\r\n")
             self.wfile.write(b"SIP/2.0 180 Ringing\r\n\r\n")
             self.wfile.write(b"SIP/2.0 200 OK\r\n\r\n")
-        elif line_str.split(" ")[0] == "ACK":
-            send = "mp32rtp -i 127.0.0.1 -p 23032 < " + sys.argv[3]
-            os.system(send)
         elif line_str.split(" ")[0] == "BYE":
             self.wfile.write(b"SIP/2.0 200 OK\r\n\r\n")
         elif line_str.split(" ")[0] != "":
@@ -68,7 +90,9 @@ class SIPHandler(socketserver.DatagramRequestHandler):
                 self.wfile.write(b"SIP/2.0 405 Method Not Allowed\r\n\r\n")
         print(line_str)
 
+
 def actual_time():
+    """Format time YYYYMMDDHHMMSS for log purposes."""
     timenow = time.strftime("%Y%m%d%H%M%S", time.gmtime(time.time()))
     return timenow
 
@@ -82,6 +106,12 @@ if __name__ == "__main__":
         parser.setContentHandler(cHandler)
         parser.parse(open(CONFIG))
         config = cHandler.get_config()
+        try:
+            log_file = open(config[-1])
+            log_file = open(config[-1], "a")
+        except FileNotFoundError:   #  When the file does not exists.
+            log_file = open(config[-1], "w")
+            log_file.write(str(actual_time()) + " Starting...\n")
         serv = socketserver.UDPServer((config[1], int(config[2])), SIPHandler)
         print("Server " + config[0] + " listening at port " + config[2] +
               "...")
@@ -89,4 +119,6 @@ if __name__ == "__main__":
     except (IndexError, ValueError):
         sys.exit("Usage: python proxy_registrar.py config")
     except KeyboardInterrupt:
+        log_file.write(str(actual_time()) + " Finishing.\n")
+        log_file.close
         print("END OF SERVER")
