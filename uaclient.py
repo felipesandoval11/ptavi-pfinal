@@ -10,12 +10,13 @@ import socket
 import sys
 import random
 
+
 try:
     CONFIG = sys.argv[1]
     METHOD = sys.argv[2]
     if len(sys.argv) == 4:
         OPTION = sys.argv[3]
-    elif len(sys.argv) != 3:
+    elif len(sys.argv) != 3 or METHOD == "ACK":
         raise IndexError
     if METHOD == "ACK":     # Por seguridad.
         raise ValueError
@@ -81,7 +82,6 @@ if __name__ == "__main__":
         except FileNotFoundError:   #  When the file does not exists.
             log_file = open(config[7], "w")
             log_file.write(str(actual_time()) + " Starting...\n")
-         
 # Different kind of methods.
         if METHOD == "REGISTER":
             if len(sys.argv) == 4:
@@ -93,7 +93,18 @@ if __name__ == "__main__":
                            config[3] + " SIP/2.0\r\n\r\n" + "Expires: " +\
                            "3600\r\n"
         else:
-            SIP_LINE = METHOD + " sip:" + config[0] + " SIP/2.0\r\n\r\n"
+            if len(sys.argv) == 4:
+                if METHOD == "INVITE":
+                    SIP_LINE = METHOD + " sip:" + OPTION + " SIP/2.0\r\n\r\n"\
+                               + "Content-Type: application/sdp\r\n\r\n" +\
+                               "v=0\r\n" + "o=" + config[0] + " " + config[2]\
+                               + "\r\n" + "s=PracticaFinal\r\n" + "t=0\r\n" +\
+                               "m=audio " + config[4] + " RTP\r\n"
+                else:
+                    SIP_LINE = METHOD + " sip:" + OPTION + " SIP/2.0\r\n\r\n"
+            else:
+                print("FALTA SABER EL LOGIN")
+                SIP_LINE = METHOD + " SIP/2.0\r\n\r\n"
         
         SIP_HASH = SIP_LINE.split("\r\n")
         with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as my_socket:
@@ -120,7 +131,7 @@ if __name__ == "__main__":
                 my_socket.send(bytes(SIP_LINE, 'utf-8'))
             elif data.decode('utf-8').split(" ")[-1] == "OK\r\n\r\n" and \
                METHOD != "BYE":
-                SIP_ACK = "ACK" + " sip:" + LOGIN + " SIP/2.0\r\n\r\n"
+                SIP_ACK = "ACK" + " sip:" + OPTION + " SIP/2.0\r\n\r\n"
                 my_socket.send(bytes(SIP_ACK, 'utf-8'))
                 data = my_socket.recv(1024)
                 print(data.decode('utf-8'))
