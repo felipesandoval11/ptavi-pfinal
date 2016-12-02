@@ -105,7 +105,7 @@ if __name__ == "__main__":
             else:
                 print("FALTA SABER EL LOGIN")
                 SIP_LINE = METHOD + " SIP/2.0\r\n\r\n"
-        
+
         SIP_HASH = SIP_LINE.split("\r\n")
         with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as my_socket:
             my_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
@@ -117,9 +117,7 @@ if __name__ == "__main__":
                            ":" + config[6] + ": " + SIP_HASH[0] + " " + 
                            SIP_HASH[2] + "\n")
             data = my_socket.recv(1024)
-            
-            
-            print('-- RECIEVED SIP INFO --\n' + data.decode('utf-8'))
+            print('-- RECIEVED SIP RESPONSES --\n' + data.decode('utf-8'))
             data_hash = data.decode('utf-8').split(" ")
             log_file.write(str(actual_time()) + " Recieved from " + config[5] + 
                            ":" + config[6] + ": " + data_hash[0] + "\n")
