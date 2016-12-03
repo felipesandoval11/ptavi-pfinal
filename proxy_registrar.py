@@ -51,6 +51,7 @@ class SIPHandler(socketserver.DatagramRequestHandler):
         """Handler to manage incoming users SIP request."""
         line = self.rfile.read()
         line_str = line.decode('utf-8')
+
         if line_str.split(" ")[0] == "REGISTER":
             if "Digest" not in line_str.split(" "):
                 nonce = str(random.randint(000000000000000000000, 
@@ -76,19 +77,24 @@ class SIPHandler(socketserver.DatagramRequestHandler):
                 except FileNotFoundError:   #  When the file does not exists.
                     users_file = open(config[3], "w") 
                     users_file.write(registered)
-        if line_str.split(" ")[0] == "INVITE":
+        elif line_str.split(" ")[0] == "INVITE":
             self.wfile.write(b"SIP/2.0 100 Trying\r\n\r\n")
             self.wfile.write(b"SIP/2.0 180 Ringing\r\n\r\n")
             self.wfile.write(b"SIP/2.0 200 OK\r\n\r\n")
+        elif line_str.split(" ")[0] == "ACK":
+            #send = "mp32rtp -i 127.0.0.1 -p 23032 < " + sys.argv[3]
+            #os.system(send)
+            print("AHORA ENVIO")
         elif line_str.split(" ")[0] == "BYE":
             self.wfile.write(b"SIP/2.0 200 OK\r\n\r\n")
         elif line_str.split(" ")[0] != "":
-            if line_str.split(" ")[0] == "invite" or\
+            if line_str.split(" ")[0] == "register" or\
+               line_str.split(" ")[0] == "invite" or\
                line_str.split(" ")[0] == "bye":  # Avoiding lower cases methods
                 self.wfile.write(b"SIP/2.0 400 Bad Request\r\n\r\n")
             else:
                 self.wfile.write(b"SIP/2.0 405 Method Not Allowed\r\n\r\n")
-        print(line_str)
+        print("-- RECIEVED REQUEST --\r\n" + line_str)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       
 
 
 def actual_time():
@@ -110,11 +116,12 @@ if __name__ == "__main__":
             log_file = open(config[-1])
             log_file = open(config[-1], "a")
         except FileNotFoundError:   #  When the file does not exists.
+            print("aqui")
             log_file = open(config[-1], "w")
             log_file.write(str(actual_time()) + " Starting...\n")
         serv = socketserver.UDPServer((config[1], int(config[2])), SIPHandler)
         print("Server " + config[0] + " listening at port " + config[2] +
-              "...")
+              "...\n")
         serv.serve_forever()
     except (IndexError, ValueError):
         sys.exit("Usage: python proxy_registrar.py config")
