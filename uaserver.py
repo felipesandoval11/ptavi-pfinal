@@ -52,11 +52,9 @@ class SIPHandler(socketserver.DatagramRequestHandler):
     """Main handler to send a RTP audio stream."""
 
     def handle(self):
-        """Handler to manage incoming users SIP request."""
+        """Handler to manage users SIP request."""
         line = self.rfile.read()
         line_str = line.decode('utf-8')
-        if line_str.split(" ")[0] == "REGISTER":
-            self.wfile.write(b"SIP/2.0 401 Unauthorized\r\n\r\n")
         if line_str.split(" ")[0] == "INVITE":
             self.wfile.write(b"SIP/2.0 100 Trying\r\n\r\n")
             self.wfile.write(b"SIP/2.0 180 Ringing\r\n\r\n")
