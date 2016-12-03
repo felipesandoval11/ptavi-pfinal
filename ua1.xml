@@ -3,10 +3,10 @@
   <account  username="felipesandoval@urjc.org"
             passwd="incognite1234"/>
   <uaserver ip="127.0.0.1"
-            puerto="4500"/>
+            puerto="5560"/>
   <rtpaudio puerto="4444"/>
   <regproxy ip="127.0.0.1"
-            puerto="6600"/>
-  <log      path="/Desktop/ptavi-pfinal/log_ua1.xml"/>
-  <audio    path="/Desktop/ptavi-pfinal/cancion.mp3"/>
+            puerto="8450"/>
+  <log      path="/Users/felipesandoval/Desktop/ptavi-pfinal/log_ua1.txt"/>
+  <audio    path="/Users/felipesandoval/Desktop/ptavi-pfinal/cancion.mp3"/>
 </config>
