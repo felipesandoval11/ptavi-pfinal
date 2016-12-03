@@ -9,14 +9,18 @@ import time
 import socket
 import sys
 import random
+import os
 
 
 try:
     CONFIG = sys.argv[1]
     METHOD = sys.argv[2]
     if len(sys.argv) == 4:
-        OPTION = sys.argv[3]
-    elif len(sys.argv) != 3 or METHOD == "ACK":
+        if METHOD == "REGISTER" and not str.isdigit(sys.argv[3]):
+            raise ValueError
+        else:
+            OPTION = sys.argv[3]
+    elif len(sys.argv) != 3:
         raise IndexError
     if METHOD == "ACK":     # Por seguridad.
         raise ValueError
@@ -83,15 +87,14 @@ if __name__ == "__main__":
             log_file = open(config[7], "w")
             log_file.write(str(actual_time()) + " Starting...\n")
 # Different kind of methods.
-        if METHOD == "REGISTER":
+        if METHOD == "REGISTER" or METHOD == "register":
             if len(sys.argv) == 4:
                 SIP_LINE = METHOD + " sip:" + config[0] + ":" +\
                            config[3] + " SIP/2.0\r\n\r\n" + "Expires: " +\
                            OPTION + "\r\n"
             else:
                 SIP_LINE = METHOD + " sip:" + config[0] + ":" +\
-                           config[3] + " SIP/2.0\r\n\r\n" + "Expires: " +\
-                           "3600\r\n"
+                           config[3] + " SIP/2.0\r\n\r\n" + "Expires: 3600\r\n"
         else:
             if len(sys.argv) == 4:
                 if METHOD == "INVITE":
@@ -127,11 +130,14 @@ if __name__ == "__main__":
                 SIP_LINE += "Authorization: Digest response=" + str(response)\
                             + "\r\n"
                 my_socket.send(bytes(SIP_LINE, 'utf-8'))
+                print("-- SENDING REGISTER AGAIN --\n" + SIP_LINE) 
             elif data.decode('utf-8').split(" ")[-1] == "OK\r\n\r\n" and \
                METHOD != "BYE":
-                SIP_ACK = "ACK" + " sip:" + OPTION + " SIP/2.0\r\n\r\n"
+                SIP_ACK = "ACK" + " sip:" + config[0] + " SIP/2.0\r\n\r\n"
                 my_socket.send(bytes(SIP_ACK, 'utf-8'))
                 data = my_socket.recv(1024)
+                #send = "mp32rtp -i 127.0.0.1 -p 23032 < " + sys.argv[3]
+                #os.system(send)
                 print(data.decode('utf-8'))
             my_socket.close()
             print("END OF SOCKET")
