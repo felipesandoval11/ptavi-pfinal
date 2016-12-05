@@ -66,12 +66,12 @@ def recieved_log(config, log_file, sip_data):
                    ":" + str(config[1]) + ": " + sip_data + "\n")
 
 
-def sent_to_uaserver(user):
+def send_to_uaserver(ip, port, data):
     """Initiates a socket to send to my UA server."""
-    print("BUSCAR EN MIS USUARIOS Y ENVIAR")
     with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as my_socket:
         my_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        my_socket.connect((config[5], int(config[6])))
+        my_socket.connect((ip, int(port)))
+        my_socket.send(bytes(data, 'utf-8'))
 
 
 def make_users(data):
@@ -98,8 +98,7 @@ def find_password(user):
     except FileNotFoundError:   # When the file doesn't exists. NEED PASSWORDS.
         pasword = "00null00"
     return password
-
-
+    
 class SIPHandler(socketserver.DatagramRequestHandler):
     """Main handler of SIP responses."""
     my_dic = {}         # My active client dic.
@@ -134,6 +133,7 @@ class SIPHandler(socketserver.DatagramRequestHandler):
         recieved_log(self.client_address, log_file, line_hash)
 
         if line_str[0] == "REGISTER":
+            
             if "Digest" not in line_str:
                 self.nonce.append(str(random.randint(000000000000000000000,
                                                      99999999999999999999)))
@@ -178,18 +178,34 @@ class SIPHandler(socketserver.DatagramRequestHandler):
                 self.nonce.clear()
 
         elif line_str[0] == "INVITE":
+        
+            self.json2registered()
+            self.expired()
             user_to_send = line_str[1].split(":")[1]
-            print(user_to_send)
-            self.wfile.write(b"SIP/2.0 100 Trying\r\n\r\n")
-            self.wfile.write(b"SIP/2.0 180 Ringing\r\n\r\n")
-            self.wfile.write(b"SIP/2.0 200 OK\r\n\r\n")
-            s_content = "SIP/2.0 100 Trying SIP/2.0 180 Ringing " +\
-                        "SIP/2.0 200 OK"
-            sents_log(self.client_address, log_file, s_content)
+            if self.find_register(user_to_send):
+                ip_serv = self.my_dic[user_to_send]["address"]
+                port_serv = self.my_dic[user_to_send]["port"]
+                send_to_uaserver(ip_serv, port_serv, line.decode('utf-8'))
+                self.wfile.write(b"SIP/2.0 100 Trying\r\n\r\n")
+                self.wfile.write(b"SIP/2.0 180 Ringing\r\n\r\n")
+                self.wfile.write(b"SIP/2.0 200 OK\r\n\r\n")
+                s_content = "SIP/2.0 100 Trying SIP/2.0 180 Ringing " +\
+                            "SIP/2.0 200 OK"
+                sents_log(self.client_address, log_file, s_content)
+            else:
+                self.wfile.write(b"SIP/2.0 404 User Not Found\r\n\r\n")
+                s_content = "SIP/2.0 404 User Not Found"
+                sents_log(self.client_address, log_file, s_content)
+
         elif line_str[0] == "ACK":
-            print("ni idea")
+            
+            self.json2registered()
+            self.expired()
 
         elif line_str[0] == "BYE":
+            
+            self.json2registered()
+            self.expired()
             if len(line_str) != 2:
                 self.wfile.write(b"SIP/2.0 200 OK\r\n\r\n")
                 s_content = "SIP/2.0 200 OK"
@@ -197,7 +213,9 @@ class SIPHandler(socketserver.DatagramRequestHandler):
                 self.wfile.write(b"SIP/2.0 400 Bad Request\r\n\r\n")
                 s_content = "SIP/2.0 400 Bad Request"
             sents_log(self.client_address, log_file, s_content)
+        
         elif line_str[0] != "":
+            
             if line_str[0] == "register" or line_str[0] == "invite" or\
                line_str[0] == "bye":  # Avoiding lower cases methods
                 self.wfile.write(b"SIP/2.0 400 Bad Request\r\n\r\n")
@@ -221,7 +239,14 @@ class SIPHandler(socketserver.DatagramRequestHandler):
         for client in expired_dic:
             del self.my_dic[client]
         return self.my_dic
-
+        
+    def find_register(self, user):
+        """Method that checks if there's a client in my active clients."""
+        Found = False
+        for client in self.my_dic:
+            if client == user:
+                return True
+        return Found
 
 if __name__ == "__main__":
     try:
