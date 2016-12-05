@@ -5,10 +5,13 @@
 
 from xml.sax import make_parser
 from xml.sax.handler import ContentHandler
+import socket
 import time
 import sys
 import socketserver
 import random
+import json
+import hashlib
 
 
 class ConfigHandler(ContentHandler):
@@ -52,17 +55,76 @@ def actual_time():
 
 
 def sents_log(config, log_file, sip_data):
+    """Sent content for log chronology purposes."""
     log_file.write(str(actual_time()) + " Sent to " + str(config[0]) +
                    ":" + str(config[1]) + ": " + sip_data + "\n")
 
 
 def recieved_log(config, log_file, sip_data):
+    """Recieved content for log chronology purposes."""
     log_file.write(str(actual_time()) + " Recieved from " + str(config[0]) +
                    ":" + str(config[1]) + ": " + sip_data + "\n")
 
 
+def sent_to_uaserver(user):
+    """Initiates a socket to send to my UA server."""
+    print("BUSCAR EN MIS USUARIOS Y ENVIAR")
+    with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as my_socket:
+        my_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        my_socket.connect((config[5], int(config[6])))
+
+
+def make_users(data):
+    """Making my users DATABASE .txt file."""
+    try:
+        users_file = open(config[3])
+        users_file = open(config[3], "a")
+        users_file.write(data)
+    except FileNotFoundError:  # When the file does not exists.
+        users_file = open(config[3], "w")
+        users_file.write(data)
+
+
+def find_password(user):
+    """Verify password of user."""
+    try:
+        file = open("passwords", "r")
+        lines = file.readlines()
+        password = ""
+        for line in lines:
+            user_line = line.split()[0].split(":")[1]
+            if user == user_line:
+                password = line.split()[1].split(":")[1]
+    except FileNotFoundError:   # When the file doesn't exists. NEED PASSWORDS.
+        pasword = "00null00"
+    return password
+
+
 class SIPHandler(socketserver.DatagramRequestHandler):
     """Main handler of SIP responses."""
+    my_dic = {}         # My active client dic.
+    exist_file = True
+    nonce = []
+
+    def json2registered(self):
+        """Method to look if there is an over-existing json file."""
+        try:
+            with open("registered.json", "r") as data_file:
+                self.my_dic = json.load(data_file)
+                self.exist_file = True
+        except:
+            self.exist_file = False
+
+    def register2json(self):
+        """Method to write a json file of my_dic."""
+        if not self.exist_file or len(self.my_dic) == 0:
+            with open("registered.json", "w") as outfile:
+                json.dump(self.my_dic, outfile, indent=4, sort_keys=True,
+                          separators=(',', ':'))
+        else:
+            with open("registered.json", "r+") as outfile:
+                json.dump(self.my_dic, outfile, indent=4, sort_keys=True,
+                          separators=(',', ':'))
 
     def handle(self):
         """Handler to manage incoming users SIP request."""
@@ -73,33 +135,51 @@ class SIPHandler(socketserver.DatagramRequestHandler):
 
         if line_str[0] == "REGISTER":
             if "Digest" not in line_str:
-                nonce = str(random.randint(000000000000000000000,
-                                           999999999999999999999))
-                self.wfile.write(b"SIP/2.0 401 Unauthorized\r\n\r\n")
-                self.wfile.write(bytes("WWW Authenticate: Digest nonce=" +
-                                       nonce + "\r\n", 'utf-8'))
+                self.nonce.append(str(random.randint(000000000000000000000,
+                                                     99999999999999999999)))
+                self.wfile.write(bytes("SIP/2.0 401 Unauthorized\r\n" +
+                                       "WWW Authenticate: Digest nonce=" +
+                                       self.nonce[0] + "\r\n", 'utf-8'))
                 s_content = "SIP/2.0 401 Unauthorized WWW Authenticate: " +\
-                            "Digest nonce=" + str(nonce)
+                            "Digest nonce=" + self.nonce[0]
                 sents_log(self.client_address, log_file, s_content)
             else:
-                # Making my users text file
+                hash_recieved = line_str[-1].split("=")[1]
                 user = line_str[1].split(":")[1]
-                port = line_str[1].split(":")[2]
-                expire = line_str[4]
-                reg_time = time.strftime("%Y-%m-%d %H:%M:%S",
-                                         time.gmtime(time.time()))
-                registered = user + " 127.0.0.1 " + port + " " + reg_time +\
-                             " " + expire + "\n"
-                USERS.append(registered)
-                print(USERS)
-                try:
-                    users_file = open(config[3])
-                    users_file = open(config[3], "a")
-                    users_file.write(registered)
-                except FileNotFoundError:   # When the file does not exists.
-                    users_file = open(config[3], "w")
-                    users_file.write(registered)
+                my_digest = hashlib.md5()
+                my_digest.update(bytes(self.nonce[0], "utf-8"))
+                my_digest.update(bytes(find_password(user), "utf-8"))
+                my_digest.digest
+                if hash_recieved == my_digest.hexdigest():
+                    port = line_str[1].split(":")[2]
+                    expire = line_str[4]
+                    reg_time = time.strftime("%Y-%m-%d %H:%M:%S",
+                                             time.gmtime(time.time()))
+                    registered = user + " 127.0.0.1 " + port + " " + reg_time\
+                                        + " " + expire + "\n"
+                    make_users(registered)  # Making my database users txt.
+                    time_to_del = time.strftime("%Y-%m-%d %H:%M:%S",
+                                                time.gmtime(time.time() +
+                                                            int(expire)))
+                    self.json2registered()
+                    self.my_dic[user] = {"address":
+                                         str(self.client_address[0]),
+                                         "port": port,
+                                         "expire_time": expire,
+                                         "expires": time_to_del}
+                    print(self.my_dic, " my lista actual")
+                    if int(expire) == 0:
+                        del self.my_dic[user]
+                        print(self.my_dic, " asi ahora borrado")
+                    self.expired()
+                    self.register2json()
+                else:
+                        print("FALSO NO ME COINCIDEN USER NOT FOUND?")
+                self.nonce.clear()
+
         elif line_str[0] == "INVITE":
+            user_to_send = line_str[1].split(":")[1]
+            print(user_to_send)
             self.wfile.write(b"SIP/2.0 100 Trying\r\n\r\n")
             self.wfile.write(b"SIP/2.0 180 Ringing\r\n\r\n")
             self.wfile.write(b"SIP/2.0 200 OK\r\n\r\n")
@@ -107,12 +187,15 @@ class SIPHandler(socketserver.DatagramRequestHandler):
                         "SIP/2.0 200 OK"
             sents_log(self.client_address, log_file, s_content)
         elif line_str[0] == "ACK":
-            # send = "mp32rtp -i 127.0.0.1 -p 23032 < " + sys.argv[3]
-            # os.system(send)
             print("ni idea")
+
         elif line_str[0] == "BYE":
-            self.wfile.write(b"SIP/2.0 200 OK\r\n\r\n")
-            s_content = "SIP/2.0 200 OK"
+            if len(line_str) != 2:
+                self.wfile.write(b"SIP/2.0 200 OK\r\n\r\n")
+                s_content = "SIP/2.0 200 OK"
+            else:
+                self.wfile.write(b"SIP/2.0 400 Bad Request\r\n\r\n")
+                s_content = "SIP/2.0 400 Bad Request"
             sents_log(self.client_address, log_file, s_content)
         elif line_str[0] != "":
             if line_str[0] == "register" or line_str[0] == "invite" or\
@@ -127,13 +210,25 @@ class SIPHandler(socketserver.DatagramRequestHandler):
 
         print("-- RECIEVED REQUEST --\r\n" + line.decode('utf-8'))
 
+    def expired(self):
+        """Method that checks if there's an old client in my_dic."""
+        actual_time = time.strftime("%Y-%m-%d %H:%M:%S",
+                                    time.gmtime(time.time()))
+        expired_dic = []
+        for client in self.my_dic:
+            if self.my_dic[client]["expires"] < actual_time:
+                expired_dic.append(client)
+        for client in expired_dic:
+            del self.my_dic[client]
+        return self.my_dic
+
+
 if __name__ == "__main__":
     try:
         CONFIG = sys.argv[1]
         if len(sys.argv) != 2:
             raise IndexError
         parser = make_parser()
-        USERS = []
         cHandler = ConfigHandler()
         parser.setContentHandler(cHandler)
         parser.parse(open(CONFIG))
@@ -148,7 +243,7 @@ if __name__ == "__main__":
         print("Server " + config[0] + " listening at port " + config[2] +
               "...\n")
         serv.serve_forever()
-    except (IndexError, ValueError):
+    except (IndexError, ValueError, FileNotFoundError):
         sys.exit("Usage: python proxy_registrar.py config")
     except KeyboardInterrupt:
         log_file.write(str(actual_time()) + " Finishing.\n")
