@@ -68,18 +68,36 @@ def recieved_log(config, log_file, sip_data):
 
 def send_to_uaserver(ip, port, data):
     """Initiates a socket to send to my UA server."""
-    with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as my_socket:
-        my_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        my_socket.connect((ip, int(port)))
-        my_socket.send(bytes(data, 'utf-8'))
-
+    my_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    my_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+    my_socket.connect((ip, int(port)))
+    my_socket.send(bytes(data, 'utf-8'))
+    log_connect = [ip, port]
+    log_data = (" ").join(data.split())
+    sents_log(log_connect, log_file, log_data)
+    recieved = my_socket.recv(1024).decode('utf-8')
+    #print(data.split()[0])
+    print("-- RECIEVED REQUEST --\r\n" + recieved)
+    recieved_log(log_connect, log_file, (" ").join(recieved.split()))
+    my_socket.close()
+    return recieved
 
 def make_users(data):
     """Making my users DATABASE .txt file."""
     try:
         users_file = open(config[3])
-        users_file = open(config[3], "a")
-        users_file.write(data)
+        users_file = open(config[3], "r+")
+        Found = False
+        lines = users_file.readlines()
+        for line in lines:
+            print(lines.index(line))
+            if line.split()[0] == data.split()[0]:
+                Found = True
+                line.replace(line.split()[3], data.split()[3])
+                line.replace(line.split()[4], data.split()[4])
+                line.replace(line.split()[-1], data.split()[-1])
+        if not Found:
+            users_file.write(data)
     except FileNotFoundError:  # When the file does not exists.
         users_file = open(config[3], "w")
         users_file.write(data)
@@ -132,6 +150,10 @@ class SIPHandler(socketserver.DatagramRequestHandler):
         line_hash = (" ").join(line_str)
         recieved_log(self.client_address, log_file, line_hash)
 
+    # LO QUE RECIBO REVISAR SI DEBERIA ESTAR AQUI O ABAJO
+        print("-- RECIEVED REQUEST --\r\n" + line.decode('utf-8'))
+    # LO QUE RECIBO REVISAR SI DEBERIA ESTAR AQUI O ABAJO
+
         if line_str[0] == "REGISTER":
             
             if "Digest" not in line_str:
@@ -167,14 +189,17 @@ class SIPHandler(socketserver.DatagramRequestHandler):
                                          "port": port,
                                          "expire_time": expire,
                                          "expires": time_to_del}
-                    print(self.my_dic, " my lista actual")
+                    print(self.my_dic, " mis usuarios activos")
                     if int(expire) == 0:
                         del self.my_dic[user]
                         print(self.my_dic, " asi ahora borrado")
                     self.expired()
                     self.register2json()
                 else:
-                        print("FALSO NO ME COINCIDEN USER NOT FOUND?")
+                    print("FALSO NO ME COINCIDEN USER NOT FOUND?")
+                    self.wfile.write(b"SIP/2.0 400 Bad Request\r\n\r\n")
+                    s_content = "SIP/2.0 400 Bad Request"
+                    sents_log(self.client_address, log_file, s_content)
                 self.nonce.clear()
 
         elif line_str[0] == "INVITE":
@@ -185,13 +210,11 @@ class SIPHandler(socketserver.DatagramRequestHandler):
             if self.find_register(user_to_send):
                 ip_serv = self.my_dic[user_to_send]["address"]
                 port_serv = self.my_dic[user_to_send]["port"]
-                send_to_uaserver(ip_serv, port_serv, line.decode('utf-8'))
-                self.wfile.write(b"SIP/2.0 100 Trying\r\n\r\n")
-                self.wfile.write(b"SIP/2.0 180 Ringing\r\n\r\n")
-                self.wfile.write(b"SIP/2.0 200 OK\r\n\r\n")
-                s_content = "SIP/2.0 100 Trying SIP/2.0 180 Ringing " +\
-                            "SIP/2.0 200 OK"
-                sents_log(self.client_address, log_file, s_content)
+                recieved = send_to_uaserver(ip_serv, port_serv, 
+                                            line.decode('utf-8'))
+                self.wfile.write(bytes(recieved, "utf-8"))
+                log_hash = (" ").join(recieved.split())
+                sents_log(self.client_address, log_file, log_hash)
             else:
                 self.wfile.write(b"SIP/2.0 404 User Not Found\r\n\r\n")
                 s_content = "SIP/2.0 404 User Not Found"
@@ -201,6 +224,17 @@ class SIPHandler(socketserver.DatagramRequestHandler):
             
             self.json2registered()
             self.expired()
+            user_to_send = line_str[1].split(":")[1]
+            print(user_to_send)
+            if self.find_register(user_to_send):
+                ip_serv = self.my_dic[user_to_send]["address"]
+                port_serv = self.my_dic[user_to_send]["port"]
+                recieved = send_to_uaserver(ip_serv, port_serv, 
+                                            line.decode('utf-8'))
+            else:
+                self.wfile.write(b"SIP/2.0 404 User Not Found\r\n\r\n")
+                s_content = "SIP/2.0 404 User Not Found"
+                sents_log(self.client_address, log_file, s_content)
 
         elif line_str[0] == "BYE":
             
@@ -226,7 +260,6 @@ class SIPHandler(socketserver.DatagramRequestHandler):
                 s_content = "SIP/2.0 405 Method Not Allowed"
                 sents_log(self.client_address, log_file, s_content)
 
-        print("-- RECIEVED REQUEST --\r\n" + line.decode('utf-8'))
 
     def expired(self):
         """Method that checks if there's an old client in my_dic."""
