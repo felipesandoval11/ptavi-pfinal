@@ -157,7 +157,7 @@ if __name__ == "__main__":
 
             elif "OK" in data_hash and METHOD != "BYE":
 
-                SIP_ACK = "ACK" + " sip:" + INVITE +\
+                SIP_ACK = "ACK" + " sip:" + OPTION +\
                           " SIP/2.0\r\n\r\n"
                 # CORREGIR EL SIP DE ARRIBA. ES AL QUE SE LO ENVIO.
                 my_socket.send(bytes(SIP_ACK, 'utf-8'))
