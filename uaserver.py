@@ -1,24 +1,25 @@
 #!/usr/bin/python3
 # -*- coding: utf-8 -*-
 # Made by Felipe Sandoval Sibada
-"""UA Server Program that uses SIP and send a mp3 song via RTP"""
+"""UA SIP Server Program that receives RTP audio."""
 
+from xml.sax import make_parser
+from xml.sax.handler import ContentHandler
 import socketserver
 import sys
 import os
-from xml.sax import make_parser
-from xml.sax.handler import ContentHandler
+import time
 
 
 class ConfigHandler(ContentHandler):
-    """For handling Configuration entries"""
+    """For handling configuration entries in XML format type."""
 
     def __init__(self):
-        """Making a list with my configuration"""
+        """Making a list with my configuration."""
         self.myconfig = []
 
     def startElement(self, name, attr):
-        """Método que se llama cuando se abre una etiqueta"""
+        """Method to get data from my ATTLISTS."""
         if name == "account":       # one way to do it
             username = attr.get('username', "")
             self.myconfig.append(username)
@@ -26,6 +27,8 @@ class ConfigHandler(ContentHandler):
             self.myconfig.append(passwd)
         elif name == "uaserver":
             ip = attr.get('ip', "")
+            if ip == "":
+                ip = "127.0.0.1"
             self.myconfig.append(ip)
             puerto = attr.get('puerto', "")
             self.myconfig.append(puerto)
@@ -45,38 +48,100 @@ class ConfigHandler(ContentHandler):
             self.myconfig.append(path_audio)
 
     def get_config(self):
+        """My configurations setting list."""
         return self.myconfig
-
-  
-class SIPHandler(socketserver.DatagramRequestHandler):
-    """Main handler to send a RTP audio stream."""
-
-    def handle(self):
-        """Handler to manage users SIP request."""
-        line = self.rfile.read()
-        line_str = line.decode('utf-8')
-        if line_str.split(" ")[0] == "INVITE":
-            self.wfile.write(b"SIP/2.0 100 Trying\r\n\r\n")
-            self.wfile.write(b"SIP/2.0 180 Ringing\r\n\r\n")
-            self.wfile.write(b"SIP/2.0 200 OK\r\n\r\n")
-        elif line_str.split(" ")[0] == "ACK":
-            send = "mp32rtp -i 127.0.0.1 -p 23032 < " + sys.argv[3]
-            os.system(send)
-        elif line_str.split(" ")[0] == "BYE":
-            self.wfile.write(b"SIP/2.0 200 OK\r\n\r\n")
-        elif line_str.split(" ")[0] != "":
-            if line_str.split(" ")[0] == "invite" or\
-               line_str.split(" ")[0] == "bye":  # Avoiding lower cases methods
-                self.wfile.write(b"SIP/2.0 400 Bad Request\r\n\r\n")
-            else:
-                self.wfile.write(b"SIP/2.0 405 Method Not Allowed\r\n\r\n")
-        print(line_str)
 
 
 def actual_time():
     """Format time YYYYMMDDHHMMSS for log purposes."""
     timenow = time.strftime("%Y%m%d%H%M%S", time.gmtime(time.time()))
     return timenow
+
+
+def sents_log(config, log_file, sip_data):
+    """Sent content for log chronology purposes."""
+    log_file.write(str(actual_time()) + " Sent to " + config[5] +
+                   ":" + config[6] + ": " + sip_data + "\n")
+
+
+def recieved_log(config, log_file, sip_data):
+    """Recieved content for log chronology purposes."""
+    log_file.write(str(actual_time()) + " Recieved from " + config[5] +
+                   ":" + config[6] + ": " + sip_data + "\n")
+
+
+class SIPHandler(socketserver.DatagramRequestHandler):
+    """Main handler of an UA Server."""
+
+    rtp_user = []         # My destination list of RTP audio.
+
+    def handle(self):
+        """Handler to manage SIP request."""
+        line = self.rfile.read()
+        line_str = line.decode('utf-8').split()
+        line_hash = (" ").join(line_str)
+        recieved_log(config, log_file, line_hash)
+
+        if line_str[0] == "INVITE":
+
+            self.wfile.write(b"SIP/2.0 100 Trying\r\n\r\n")
+            self.wfile.write(b"SIP/2.0 180 Ringing\r\n\r\n")
+            self.wfile.write(b"SIP/2.0 200 OK\r\n")
+            self.wfile.write(bytes("Content-Type: application/sdp\r\n\r\n" +
+                                   "v=0\r\n" + "o=" + str(config[0]) + " " +
+                                   str(config[2]) + "\r\ns=PracticaFinal\r\n" +
+                                   "t=0\r\nm=audio " + str(config[4]) +
+                                   " RTP\r\n", 'utf-8'))
+            s_content = "SIP/2.0 100 Trying SIP/2.0 180 Ringing " +\
+                        "SIP/2.0 200 OK Content-Type: application/sdp v=0 " +\
+                        "o=" + config[0] + " " + config[2] + " s=Practica" +\
+                        "Final t=0 m=audio " + config[4] + " RTP"
+            sents_log(config, log_file, s_content)
+
+            # making my list for rtp destination EP
+            self.rtp_user.append(line_str[7])
+            self.rtp_user.append(line_str[11])
+            self.rtp_user.append(line_str[6].split("=")[1])
+
+        elif line_str[0] == "ACK":
+
+            send = "./mp32rtp -i " + self.rtp_user[0] + " -p " +\
+                   self.rtp_user[1] + " < " + config[-1]
+            os.system(send)
+            log_file.write(str(actual_time()) + " Sent to " +
+                           self.rtp_user[0] + ":" + self.rtp_user[1] +
+                           ": AUDIO FILE " + config[-1] + "\n")
+            self.rtp_user = []
+
+        elif line_str[0] == "BYE":
+
+            self.wfile.write(b"SIP/2.0 200 OK\r\n\r\n")
+            s_content = "SIP/2.0 200 OK"
+            sents_log(config, log_file, s_content)
+
+        elif line_str[0] != "":
+            # Avoiding lower cases methods.
+            if line_str[0] == "invite" or line_str[0] == "bye":
+                self.wfile.write(b"SIP/2.0 400 Bad Request\r\n\r\n")
+                s_content = "SIP/2.0 400 Bad Request"
+                sents_log(config, log_file, s_content)
+            else:
+                self.wfile.write(b"SIP/2.0 405 Method Not Allowed\r\n\r\n")
+                s_content = "SIP/2.0 405 Method Not Allowed"
+                sents_log(config, log_file, s_content)
+
+        print("-- RECIEVED REQUEST --\r\n" + line.decode('utf-8'))
+
+
+def open_log(config):
+    """Opening my log file previously opened by the uaclient."""
+    try:
+        log_file = open(config[7])
+        log_file = open(config[7], "a")
+    except FileNotFoundError:   # When the file does not exists.
+        log_file = open(config[7], "w")
+    return log_file
+
 
 if __name__ == "__main__":
     try:
@@ -88,10 +153,11 @@ if __name__ == "__main__":
         parser.setContentHandler(cHandler)
         parser.parse(open(CONFIG))
         config = cHandler.get_config()
-        if not os.path.exists(config[-1]):  # Does this audio file exists?
+        if not os.path.exists(config[-1]):  # Does this audio file exists?.
             raise OSError
         serv = socketserver.UDPServer((config[2], int(config[3])), SIPHandler)
-        print("Listening...")
+        log_file = open_log(config)
+        print("Listening...\n")
         serv.serve_forever()
     except (IndexError, ValueError, OSError):
         sys.exit("Usage: python uaserver.py config")
