@@ -23,7 +23,7 @@ try:
             OPTION = sys.argv[3]
     elif len(sys.argv) != 3:
         raise IndexError
-    if METHOD == "ACK":     # Por seguridad.
+    if METHOD == "ACK":                     # Por seguridad. Avoid Spoofing.
         raise ValueError
 except (IndexError, ValueError):
     sys.exit("Usage: python uaclient.py config method option")
@@ -97,11 +97,10 @@ if __name__ == "__main__":
         config = cHandler.get_config()
         if not os.path.exists(config[-1]):  # Does this audio file exists?.
             raise OSError
-
         try:
             log_file = open(config[7])
             log_file = open(config[7], "a")
-        except FileNotFoundError:   # When the file does not exists.
+        except FileNotFoundError:           # When the file does not exists.
             log_file = open(config[7], "w")
             log_file.write(str(actual_time()) + " Starting...\n")
 
@@ -120,6 +119,8 @@ if __name__ == "__main__":
                                 "v=0\r\n" + "o=" + config[0] + " " + config[2]\
                                 + "\r\n" + "s=PracticaFinal\r\n" + "t=0\r\n" +\
                                 "m=audio " + config[4] + " RTP\r\n"
+                else:
+                    SIP_LINE += "\r\n"  # Adding new line in SIP.
             else:
                 print("-- IMPORTANT: you did't specify the login --\n")
                 SIP_LINE = METHOD + " SIP/2.0\r\n\r\n"
@@ -129,7 +130,7 @@ if __name__ == "__main__":
         with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as my_socket:
             my_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
             my_socket.connect((config[5], int(config[6])))
-            print(SIP_LINE)     # Content to send.
+            print(SIP_LINE)                 # Content to send.
             my_socket.send(bytes(SIP_LINE, 'utf-8'))
             sents_log(config, log_file, SIP_HASH)
             data = my_socket.recv(1024)
@@ -138,8 +139,9 @@ if __name__ == "__main__":
             data_hash = data.decode('utf-8').split()
             log_data = (" ").join(data_hash)        # Content to write in log.
             recieved_log(config, log_file, log_data)
-            nonce_recieved = data_hash[6].split("=")[1]
             if "401" in data_hash:
+
+                nonce_recieved = data_hash[6].split("=")[1]
                 digest = hashlib.md5()
                 digest.update(bytes(nonce_recieved, "utf-8"))
                 digest.update(bytes(config[1], "utf-8"))
@@ -154,21 +156,24 @@ if __name__ == "__main__":
                 print("-- SENDING REGISTER AGAIN --\n" + SIP_LINE)
 
             elif "OK" in data_hash and METHOD != "BYE":
-                SIP_ACK = "ACK" + " sip:" + config[0] + " SIP/2.0\r\n\r\n"
+
+                SIP_ACK = "ACK" + " sip:" + INVITE +\
+                          " SIP/2.0\r\n\r\n"
                 # CORREGIR EL SIP DE ARRIBA. ES AL QUE SE LO ENVIO.
                 my_socket.send(bytes(SIP_ACK, 'utf-8'))
-                # send = "mp32rtp -i 127.0.0.1 -p 23032 < " + sys.argv[3]
-                # os.system(send)
+
             elif METHOD == "BYE":
+
                 log_file.write(str(actual_time()) + " Finishing.\n")
+
             my_socket.close()
-            print("END OF SOCKET")
-            # log_file.write(str(actual_time()) + " Finishing.\n")
             log_file.close()
-    except (FileNotFoundError, OSError):
-        sys.exit("Usage: python uaclient.py config method option.")
+            print("-- END OF SOCKET --")
+
     except ConnectionRefusedError:
         log_file.write(str(actual_time()) + " Error: No server listening at " +
                        config[5] + " port " + config[6] + "\n")
         log_file.close()
         print("Connection Refused: Server not found.")
+    except (FileNotFoundError, OSError):
+        sys.exit("Usage: python uaclient.py config method option.")
