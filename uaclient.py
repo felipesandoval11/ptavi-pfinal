@@ -159,8 +159,14 @@ if __name__ == "__main__":
 
                 SIP_ACK = "ACK" + " sip:" + OPTION +\
                           " SIP/2.0\r\n\r\n"
-                # CORREGIR EL SIP DE ARRIBA. ES AL QUE SE LO ENVIO.
                 my_socket.send(bytes(SIP_ACK, 'utf-8'))
+
+                #send = "./mp32rtp -i " + data_hash[13] + " -p " +\
+                #       data_hash[17] + " < " + config[-1]
+                #os.system(send)
+                #log_file.write(str(actual_time()) + " Sent to " +
+                #           data_hash[13] + ":" + data_hash[17] +
+                #           ": AUDIO FILE " + config[-1] + "\n")
 
             elif METHOD == "BYE":
 
