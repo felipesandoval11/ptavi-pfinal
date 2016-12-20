@@ -21,6 +21,16 @@ class ConfigHandler(ContentHandler):
         """My list of configurations."""
         self.myconfig = []
 
+    def valid_ip(self, ip):
+        """Checking if an ip is valid."""
+        if len(ip.split(".")) != 4:
+            return False
+        else:
+            for digit in ip.split("."):
+                if int(digit) > 255 or int(digit) < 0:
+                    return False
+            return True
+
     def startElement(self, element, attr):
         """Method to save attributes."""
         if element == "server":       # one way to do it
@@ -31,8 +41,13 @@ class ConfigHandler(ContentHandler):
             ip = attr.get('ip', "")
             if ip == "":
                 ip = "127.0.0.1"
+            else:
+                if not self.valid_ip(ip):
+                    raise ValueError
             self.myconfig.append(ip)
             puerto = attr.get('puerto', "")
+            if not str.isdigit(puerto):
+                raise ValueError
             self.myconfig.append(puerto)
         elif element == "database":
             path = attr.get('path', "")
@@ -120,7 +135,7 @@ def find_password(user):
             if user == user_line:
                 password = line.split()[1].split(":")[1]
     except FileNotFoundError:   # When the file doesn't exists. NEED PASSWORDS.
-        pasword = "00null00"
+        pasword = str(random.randint(000000, 999999))
     return password
 
 
@@ -208,9 +223,10 @@ class SIPHandler(socketserver.DatagramRequestHandler):
 
             self.json2registered()
             self.expired()
-            if len(line_str) != 2:
+            # sender = line_str[6].split("=")[1] IMPEDIR LOS NO REGISTRADOS
+            if len(line_str) != 2:  # and self.find_user(sender):
                 user_to_send = line_str[1].split(":")[1]
-                if self.find_register(user_to_send):
+                if self.find_user(user_to_send):
                     ip_serv = self.my_dic[user_to_send]["address"]
                     port_serv = self.my_dic[user_to_send]["port"]
                     recieved = send_to_uaserver(ip_serv, port_serv,
@@ -232,7 +248,7 @@ class SIPHandler(socketserver.DatagramRequestHandler):
             self.json2registered()
             self.expired()
             user_to_send = line_str[1].split(":")[1]
-            if self.find_register(user_to_send):
+            if self.find_user(user_to_send):
                 ip_serv = self.my_dic[user_to_send]["address"]
                 port_serv = self.my_dic[user_to_send]["port"]
                 recieved = send_to_uaserver(ip_serv, port_serv,
@@ -269,7 +285,7 @@ class SIPHandler(socketserver.DatagramRequestHandler):
             del self.my_dic[client]
         return self.my_dic
 
-    def find_register(self, user):
+    def find_user(self, user):
         """Method that checks if there's a client in my active clients."""
         Found = False
         for client in self.my_dic:
