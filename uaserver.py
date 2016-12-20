@@ -18,6 +18,16 @@ class ConfigHandler(ContentHandler):
         """Making a list with my configuration."""
         self.myconfig = []
 
+    def valid_ip(self, ip):
+        """Checking if an ip is valid."""
+        if len(ip.split(".")) != 4:
+            return False
+        else:
+            for digit in ip.split("."):
+                if int(digit) > 255 or int(digit) < 0:
+                    return False
+            return True
+
     def startElement(self, name, attr):
         """Method to get data from my ATTLISTS."""
         if name == "account":       # one way to do it
@@ -29,16 +39,27 @@ class ConfigHandler(ContentHandler):
             ip = attr.get('ip', "")
             if ip == "":
                 ip = "127.0.0.1"
+            else:
+                if not self.valid_ip(ip):
+                    raise ValueError
             self.myconfig.append(ip)
             puerto = attr.get('puerto', "")
+            if not str.isdigit(puerto):
+                raise ValueError
             self.myconfig.append(puerto)
         elif name == 'rtpaudio':
             puerto_rtp = attr.get('puerto', "")
+            if not str.isdigit(puerto_rtp):
+                raise ValueError
             self.myconfig.append(puerto_rtp)
         elif name == 'regproxy':
             ipproxy = attr.get('ip', "")
             self.myconfig.append(ipproxy)
+            if not self.valid_ip(ipproxy):
+                raise ValueError
             puerto_proxy = attr.get('puerto', "")
+            if not str.isdigit(puerto_proxy):
+                raise ValueError
             self.myconfig.append(puerto_proxy)
         elif name == 'log':
             path = attr.get('path', "")
@@ -140,6 +161,7 @@ def open_log(config):
         log_file = open(config[7], "a")
     except FileNotFoundError:   # When the file does not exists.
         log_file = open(config[7], "w")
+        log_file.write(str(actual_time()) + " Starting...\n")
     return log_file
 
 
