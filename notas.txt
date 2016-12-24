@@ -1,0 +1,41 @@
+-- IMPLEMENTACIONES ADICIONALES: --
+
+(1) Como medida de seguridad para evitar el spoofing en la comunicación, si se le pasa al cliente "ACK" como método éste no se iniciará y mostrará por pantalla el mensaje: "Usage: python uaclient.py config method option".
+
+(2) EN EL PROXY REGISTRAR: Si todo marcha bien y al momento de establecer la conexión con el UAserver éste no ha sido lanzado se le responderá al cliente que hizo la petición con el mensaje de error "SIP/2.0 504 Server Time-out". Además se imprimirá por pantalla una alerta que me indicará que el UAServer no ha sido lanzado.
+
+(3) EN EL PROXY REGISTRAR: Si la contraseña enviada por el cliente no coincide con la contraseña que figura en el documento de passwords se imprimirá por pantalla una alerta que me indicará que ha ocurrido un acceso denegado por un error en la autenticación de credenciales. Además, se enviará al cliente un mensaje de error "SIP/2.0 400 Bad Request" y no se registrará como usuario activo.
+
+(4) Si el metodo pasado por línea de comandos es correcto pero está escrito en minúsculas SIEMPRE se obtendrá un mensaje de error "SIP/2.0 400 Bad Request".
+
+(5) Se generará un archivo con extensión .json bajo el nombre "active_clients.json" y contendrá información actualizada de los usuarios activos actualmente. Además, cada vez que se reciba un mensaje en el proxy registrar se actualizará su información de caducidad, siendo eliminados si su tiempo se encontrase expirado.
+
+(6) Es posible añadir todos los clientes que se desee mientras se respete el formato del archivo passwords y se añadan tanto el login o usuario y su contraseña.
+
+(7) En la implementación avanzada de "Consistencia del servidor proxy/registrar frente a valores erróneos" se han implementado las siguientes medidas:
+[En caso de error en los parámetros el programa no se ejecutaría e imprimirá por pantalla "Usage: python nombre-programa.py config <method> <option>"]
+    *   Si se pasa como nombre de método "ACK"
+    *   Si no es un entero el expire del Register
+    *   Si hay más valores de los necesarios en la línea de comandos 
+    *   Si no existe el mínimo de valores necesarios en la línea de comandos
+    *   Si no existe el archivo de audio a enviar previamente especificado en 
+        el xml
+    *   Si los valores de los puertos del xml no son enteros
+    *   Si el rango de las IPs no tiene sentido. Se toman en cuenta en 
+        consideración el rango de IPs desde la Clase A a la clase E, aunque         
+        muchas IPs que puedan ser válidas tampoco tengan mucho sentido. 
+        Se implementa dicha comprobación con la función valid_ip dentro del 
+        ConfigHandler.
+        (el rango de las IPs va desde la 0.0.0.0 hasta la 255.255.255.255)
+[En caso de error se obtendrá como respuesta el código de error 400]
+    *   Si un cliente no registrado (usuario activo) envia un INVITE o un BYE
+        a un usuario se le rechazará su petición
+[Casos más rebuscados]
+    *   En caso que el fichero passwords no exista todas las contraseñas 
+        tendrás como valor un número aleatorio de 6 dígitos. Nunca se podrá 
+        establecer la conversación.
+
+(8) El programa funciona si no se pasan en el fichero xml los parámetros 
+    obligatorios, dando un valor por defecto a los valores necesarios.
+
+Realizado por Felipe Sandoval Sibada.
