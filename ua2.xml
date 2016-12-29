@@ -3,7 +3,7 @@
   <account  username="grexrobles@urjc.org"
             passwd="another1234"/>
   <uaserver ip="127.0.0.1"
-            puerto="5430"/>
+            puerto="6020"/>
   <rtpaudio puerto="5555"/>
   <regproxy ip="127.0.0.1"
             puerto="8450"/>
