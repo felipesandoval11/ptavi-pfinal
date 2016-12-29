@@ -112,7 +112,7 @@ class SIPHandler(socketserver.DatagramRequestHandler):
                                    "v=0\r\n" + "o=" + str(config[0]) + " " +
                                    str(config[2]) + "\r\ns=PracticaFinal\r\n" +
                                    "t=0\r\nm=audio " + str(config[4]) +
-                                   " RTP\r\n", 'utf-8'))
+                                   " RTP\r\n\r\n", 'utf-8'))
             s_content = "SIP/2.0 100 Trying SIP/2.0 180 Ringing " +\
                         "SIP/2.0 200 OK Content-Type: application/sdp v=0 " +\
                         "o=" + config[0] + " " + config[2] + " s=Practica" +\
@@ -126,6 +126,7 @@ class SIPHandler(socketserver.DatagramRequestHandler):
 
         elif line_str[0] == "ACK":
 
+            print("-- SENDING AUDIO --\n")
             send = "./mp32rtp -i " + self.rtp_user[0] + " -p " +\
                    self.rtp_user[1] + " < " + config[-1]
             os.system(send)
