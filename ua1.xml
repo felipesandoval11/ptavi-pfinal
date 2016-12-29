@@ -3,7 +3,7 @@
   <account  username="felipesandoval@urjc.org"
             passwd="incognite1234"/>
   <uaserver ip="127.0.0.1"
-            puerto="5560"/>
+            puerto="6010"/>
   <rtpaudio puerto="4444"/>
   <regproxy ip="127.0.0.1"
             puerto="8450"/>
