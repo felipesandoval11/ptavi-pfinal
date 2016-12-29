@@ -54,13 +54,13 @@ class ConfigHandler(ContentHandler):
             passwd = attr.get('passwd', "")
             self.myconfig.append(passwd)
         elif name == "uaserver":
-            ip = attr.get('ip', "")
-            if ip == "":
-                ip = "127.0.0.1"
+            my_ip = attr.get('ip', "")
+            if my_ip == "":
+                my_ip = "127.0.0.1"
             else:
-                if not self.valid_ip(ip):
+                if not self.valid_ip(my_ip):
                     raise ValueError
-            self.myconfig.append(ip)
+            self.myconfig.append(my_ip)
             puerto = attr.get('puerto', "")
             if not str.isdigit(puerto):
                 raise ValueError
@@ -73,7 +73,7 @@ class ConfigHandler(ContentHandler):
         elif name == 'regproxy':
             ipproxy = attr.get('ip', "")
             if not self.valid_ip(ipproxy):
-                    raise ValueError
+                raise ValueError
             self.myconfig.append(ipproxy)
             puerto_proxy = attr.get('puerto', "")
             if not str.isdigit(puerto_proxy):
@@ -127,11 +127,14 @@ if __name__ == "__main__":
 
         if METHOD == "REGISTER" or METHOD == "register":
             SIP_LINE = METHOD + " sip:" + config[0] + ":" + config[3] +\
-                       " SIP/2.0\r\n\r\n" + "Expires: "
+                       " SIP/2.0\r\n" + "Expires: "
+            SIP_LINE_HASH = SIP_LINE
             if len(sys.argv) == 4:
-                SIP_LINE += OPTION + "\r\n"
-            else:
-                SIP_LINE += "3600\r\n"      # Default expiration time.
+                SIP_LINE += OPTION + "\r\n\r\n"
+                SIP_LINE_HASH += OPTION + "\r\n"
+            else:                               # Default expiration time.
+                SIP_LINE += "3600\r\n\r\n"
+                SIP_LINE_HASH += "3600\r\n"
         else:
             if len(sys.argv) == 4:
                 SIP_LINE = METHOD + " sip:" + OPTION + " SIP/2.0\r\n"
@@ -139,7 +142,7 @@ if __name__ == "__main__":
                     SIP_LINE += "Content-Type: application/sdp\r\n\r\n" +\
                                 "v=0\r\n" + "o=" + config[0] + " " + config[2]\
                                 + "\r\n" + "s=PracticaFinal\r\n" + "t=0\r\n" +\
-                                "m=audio " + config[4] + " RTP\r\n"
+                                "m=audio " + config[4] + " RTP\r\n\r\n"
                 else:
                     SIP_LINE += "\r\n"  # Adding new line in SIP.
             else:
@@ -162,26 +165,26 @@ if __name__ == "__main__":
             recieved_log(config, log_file, log_data)
             if "401" in data_hash:
 
-                nonce_recieved = data_hash[6].split("=")[1]
+                nonce_recieved = data_hash[6].split('"')[1]
                 digest = hashlib.md5()
                 digest.update(bytes(nonce_recieved, "utf-8"))
                 digest.update(bytes(config[1], "utf-8"))
                 digest.digest
                 response = random.randint(000000000000000000000,
                                           999999999999999999999)
-                SIP_LINE += "Authorization: Digest response=" +\
-                            digest.hexdigest() + "\r\n"
-                SIP_HASH = (" ").join(SIP_LINE.split())
+                SIP_LINE_HASH += 'Authorization: Digest response="' +\
+                            digest.hexdigest() + '"\r\n\r\n'
+                SIP_HASH = (" ").join(SIP_LINE_HASH.split())
                 sents_log(config, log_file, SIP_HASH)
-                my_socket.send(bytes(SIP_LINE, 'utf-8'))
-                print("-- SENDING REGISTER AGAIN --\n" + SIP_LINE)
+                my_socket.send(bytes(SIP_LINE_HASH, 'utf-8'))
+                print("-- SENDING REGISTER AGAIN --\n" + SIP_LINE_HASH)
 
             elif "OK" in data_hash and METHOD != "BYE":
 
                 SIP_ACK = "ACK" + " sip:" + OPTION +\
                           " SIP/2.0\r\n\r\n"
                 my_socket.send(bytes(SIP_ACK, 'utf-8'))
-                
+                print("-- SENDING AUDIO --\n")
                 send = "./mp32rtp -i " + data_hash[13] + " -p " +\
                        data_hash[17] + " < " + config[-1]
                 os.system(send)
@@ -196,7 +199,7 @@ if __name__ == "__main__":
 
             my_socket.close()
             log_file.close()
-            print("-- END OF SOCKET --")
+            print("-- END OF SOCKET --\n")
 
     except ConnectionRefusedError:
         print("Connection Refused: Server not found.")
