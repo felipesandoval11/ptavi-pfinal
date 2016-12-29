@@ -104,26 +104,6 @@ def send_to_uaserver(ip, port, data):
     return recieved
 
 
-def make_users(data):
-    """Making my users DATABASE .txt file."""
-    try:
-        users_file = open(config[3])
-        users_file = open(config[3], "r+")
-        Found = False
-        lines = users_file.readlines()
-        for line in lines:
-            if line.split()[0] == data.split()[0]:
-                Found = True
-                line.replace(line.split()[3], data.split()[3])
-                line.replace(line.split()[4], data.split()[4])
-                line.replace(line.split()[-1], data.split()[-1])
-        if not Found:
-            users_file.write(data)
-    except FileNotFoundError:  # When the file does not exists.
-        users_file = open(config[3], "w")
-        users_file.write(data)
-
-
 def find_password(user):
     """Verify password of user."""
     try:
@@ -175,14 +155,14 @@ class SIPHandler(socketserver.DatagramRequestHandler):
                 self.nonce.append(str(random.randint(000000000000000000000,
                                                      99999999999999999999)))
                 self.wfile.write(bytes("SIP/2.0 401 Unauthorized\r\n" +
-                                       "WWW Authenticate: Digest nonce=" +
-                                       self.nonce[0] + "\r\n", 'utf-8'))
+                                       'WWW Authenticate: Digest nonce="' +
+                                       self.nonce[0] + '"\r\n\r\n', 'utf-8'))
                 s_content = "SIP/2.0 401 Unauthorized WWW Authenticate: " +\
-                            "Digest nonce=" + self.nonce[0]
+                            'Digest nonce= "' + self.nonce[0] + '"'
                 sents_log(self.client_address, log_file, s_content)
             else:
 
-                hash_recieved = line_str[-1].split("=")[1]
+                hash_recieved = line_str[-1].split('"')[1]
                 user = line_str[1].split(":")[1]
                 my_digest = hashlib.md5()
                 my_digest.update(bytes(self.nonce[0], "utf-8"))
@@ -195,12 +175,10 @@ class SIPHandler(socketserver.DatagramRequestHandler):
                     ip = self.client_address[1]
                     reg_time = time.strftime("%Y-%m-%d %H:%M:%S",
                                              time.gmtime(time.time()))
-                    registered = user + " " + str(ip) + " " + port + " " +\
-                                 reg_time + " " + expire + "\n"
-                    make_users(registered)  # Making my database users txt.
                     time_to_del = time.strftime("%Y-%m-%d %H:%M:%S",
                                                 time.gmtime(time.time() +
                                                             int(expire)))
+                    self.wfile.write(b"SIP/2.0 200 OK\r\n\r\n")
                     self.json2registered()
                     self.my_dic[user] = {"address":
                                          str(self.client_address[0]),
