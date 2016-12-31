@@ -140,6 +140,7 @@ class SIPHandler(socketserver.DatagramRequestHandler):
             self.wfile.write(b"SIP/2.0 200 OK\r\n\r\n")
             s_content = "SIP/2.0 200 OK"
             sents_log(config, log_file, s_content)
+            log_file.write(str(actual_time()) + " Finishing.\n")
 
         elif line_str[0] != "":
             # Avoiding lower cases methods.
