@@ -163,9 +163,9 @@ if __name__ == "__main__":
             data_hash = data.decode('utf-8').split()
             log_data = (" ").join(data_hash)        # Content to write in log.
             recieved_log(config, log_file, log_data)
-            if "401" in data_hash:
 
-                nonce_recieved = data_hash[6].split('"')[1]
+            if "401" in data_hash:
+                nonce_recieved = data_hash[5].split('"')[1]
                 digest = hashlib.md5()
                 digest.update(bytes(nonce_recieved, "utf-8"))
                 digest.update(bytes(config[1], "utf-8"))
@@ -173,11 +173,17 @@ if __name__ == "__main__":
                 response = random.randint(000000000000000000000,
                                           999999999999999999999)
                 SIP_LINE_HASH += 'Authorization: Digest response="' +\
-                            digest.hexdigest() + '"\r\n\r\n'
+                                 digest.hexdigest() + '"\r\n\r\n'
                 SIP_HASH = (" ").join(SIP_LINE_HASH.split())
                 sents_log(config, log_file, SIP_HASH)
                 my_socket.send(bytes(SIP_LINE_HASH, 'utf-8'))
                 print("-- SENDING REGISTER AGAIN --\n" + SIP_LINE_HASH)
+
+                data = my_socket.recv(1024)
+                print('-- RECIEVED SIP RESPONSES --\n' + data.decode('utf-8'))
+                data_hash = data.decode('utf-8').split()
+                log_data = (" ").join(data_hash)
+                recieved_log(config, log_file, log_data)
 
             elif "OK" in data_hash and METHOD != "BYE":
 
@@ -191,6 +197,7 @@ if __name__ == "__main__":
                 log_file.write(str(actual_time()) + " Sent to " +
                                data_hash[13] + ":" + data_hash[17] +
                                ": AUDIO FILE " + config[-1] + "\n")
+                print("-- RECIEVING AUDIO IN PORT " + config[4] + "--\n")
 
             elif METHOD == "BYE":
 
