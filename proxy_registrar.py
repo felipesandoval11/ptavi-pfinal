@@ -82,7 +82,7 @@ def recieved_log(config, log_file, sip_data):
 
 
 def send_to_uaserver(ip, port, data):
-    """Initiates a socket to send to my UA server."""
+    """Initiate a socket to send to my UA server."""
     my_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     my_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
     try:
@@ -115,12 +115,13 @@ def find_password(user):
             if user == user_line:
                 password = line.split()[1].split(":")[1]
     except FileNotFoundError:   # When the file doesn't exists. NEED PASSWORDS.
-        pasword = str(random.randint(000000, 999999))
+        password = str(random.randint(000000, 999999))
     return password
 
 
 class SIPHandler(socketserver.DatagramRequestHandler):
     """Main handler of SIP responses."""
+
     my_dic = {}         # My active client dic.
     exist_file = True
     nonce = []          # Making a random number every time.
@@ -155,9 +156,9 @@ class SIPHandler(socketserver.DatagramRequestHandler):
                 self.nonce.append(str(random.randint(000000000000000000000,
                                                      99999999999999999999)))
                 self.wfile.write(bytes("SIP/2.0 401 Unauthorized\r\n" +
-                                       'WWW Authenticate: Digest nonce="' +
+                                       'WWW-Authenticate: Digest nonce="' +
                                        self.nonce[0] + '"\r\n\r\n', 'utf-8'))
-                s_content = "SIP/2.0 401 Unauthorized WWW Authenticate: " +\
+                s_content = "SIP/2.0 401 Unauthorized WWW-Authenticate: " +\
                             'Digest nonce= "' + self.nonce[0] + '"'
                 sents_log(self.client_address, log_file, s_content)
             else:
@@ -179,6 +180,8 @@ class SIPHandler(socketserver.DatagramRequestHandler):
                                                 time.gmtime(time.time() +
                                                             int(expire)))
                     self.wfile.write(b"SIP/2.0 200 OK\r\n\r\n")
+                    s_content = "SIP/2.0 200 OK"
+                    sents_log(self.client_address, log_file, s_content)
                     self.json2registered()
                     self.my_dic[user] = {"address":
                                          str(self.client_address[0]),
