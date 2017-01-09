@@ -151,8 +151,10 @@ class SIPHandler(socketserver.DatagramRequestHandler):
         print("-- RECIEVED REQUEST --\r\n" + line.decode('utf-8'))
 
         if line_str[0] == "REGISTER":
+            
+            expire = line_str[4]
 
-            if "Digest" not in line_str:
+            if "Digest" not in line_str and int(expire) != 0:
                 self.nonce.append(str(random.randint(000000000000000000000,
                                                      99999999999999999999)))
                 self.wfile.write(bytes("SIP/2.0 401 Unauthorized\r\n" +
@@ -161,6 +163,18 @@ class SIPHandler(socketserver.DatagramRequestHandler):
                 s_content = "SIP/2.0 401 Unauthorized WWW-Authenticate: " +\
                             'Digest nonce= "' + self.nonce[0] + '"'
                 sents_log(self.client_address, log_file, s_content)
+
+            elif int(expire) == 0:
+                user = line_str[1].split(":")[1]
+                port = line_str[1].split(":")[2]
+                self.json2registered()
+                self.wfile.write(b"SIP/2.0 200 OK\r\n\r\n")
+                try:
+                    del self.my_dic[user]
+                except:
+                    print("TRYING TO DELETE... User not found.")
+                self.expired()
+                self.register2json()
             else:
 
                 hash_recieved = line_str[-1].split('"')[1]
@@ -172,7 +186,6 @@ class SIPHandler(socketserver.DatagramRequestHandler):
 
                 if hash_recieved == my_digest.hexdigest():
                     port = line_str[1].split(":")[2]
-                    expire = line_str[4]
                     ip = self.client_address[1]
                     reg_time = time.strftime("%Y-%m-%d %H:%M:%S",
                                              time.gmtime(time.time()))
@@ -188,8 +201,6 @@ class SIPHandler(socketserver.DatagramRequestHandler):
                                          "port": port,
                                          "expire_time": expire,
                                          "expires": time_to_del}
-                    if int(expire) == 0:
-                        del self.my_dic[user]
                     self.expired()
                     self.register2json()
                 else:
@@ -204,24 +215,32 @@ class SIPHandler(socketserver.DatagramRequestHandler):
 
             self.json2registered()
             self.expired()
-            # sender = line_str[6].split("=")[1] IMPEDIR LOS NO REGISTRADOS
-            if len(line_str) != 2:  # and self.find_user(sender):
-                user_to_send = line_str[1].split(":")[1]
-                if self.find_user(user_to_send):
-                    ip_serv = self.my_dic[user_to_send]["address"]
-                    port_serv = self.my_dic[user_to_send]["port"]
-                    recieved = send_to_uaserver(ip_serv, port_serv,
-                                                line.decode('utf-8'))
-                    self.wfile.write(bytes(recieved, "utf-8"))
-                    log_hash = (" ").join(recieved.split())
-                    sents_log(self.client_address, log_file, log_hash)
+            if line_str[0] == "INVITE": # IMPIDE SENDERS NO REGISTRADOS
+                sender = line_str[6].split("=")[1]
+            else:
+                sender = line_str[1].split(":")[1]
+            if self.find_user(sender):
+                if len(line_str) != 2:  # and self.find_user(sender):
+                    user_to_send = line_str[1].split(":")[1]
+                    if self.find_user(user_to_send):
+                        ip_serv = self.my_dic[user_to_send]["address"]
+                        port_serv = self.my_dic[user_to_send]["port"]
+                        recieved = send_to_uaserver(ip_serv, port_serv,
+                                                    line.decode('utf-8'))
+                        self.wfile.write(bytes(recieved, "utf-8"))
+                        log_hash = (" ").join(recieved.split())
+                        sents_log(self.client_address, log_file, log_hash)
+                    else:
+                        self.wfile.write(b"SIP/2.0 404 User Not Found\r\n\r\n")
+                        s_content = "SIP/2.0 404 User Not Found"
+                        sents_log(self.client_address, log_file, s_content)
                 else:
-                    self.wfile.write(b"SIP/2.0 404 User Not Found\r\n\r\n")
-                    s_content = "SIP/2.0 404 User Not Found"
+                    self.wfile.write(b"SIP/2.0 400 Bad Request\r\n\r\n")
+                    s_content = "SIP/2.0 400 Bad Request"
                     sents_log(self.client_address, log_file, s_content)
             else:
-                self.wfile.write(b"SIP/2.0 400 Bad Request\r\n\r\n")
-                s_content = "SIP/2.0 400 Bad Request"
+                self.wfile.write(b"SIP/2.0 404 User Not Found\r\n\r\n")
+                s_content = "SIP/2.0 404 User Not Found"
                 sents_log(self.client_address, log_file, s_content)
 
         elif line_str[0] == "ACK":
