@@ -98,6 +98,7 @@ class SIPHandler(socketserver.DatagramRequestHandler):
 
     def handle(self):
         """Handler to manage SIP request."""
+        
         line = self.rfile.read()
         line_str = line.decode('utf-8').split()
         line_hash = (" ").join(line_str)
@@ -118,6 +119,7 @@ class SIPHandler(socketserver.DatagramRequestHandler):
                         "o=" + config[0] + " " + config[2] + " s=Practica" +\
                         "Final t=0 m=audio " + config[4] + " RTP"
             sents_log(config, log_file, s_content)
+            
 
             # making my list for rtp destination EP
             self.rtp_user.append(line_str[7])
