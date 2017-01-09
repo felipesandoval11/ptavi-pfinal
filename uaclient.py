@@ -185,7 +185,8 @@ if __name__ == "__main__":
                 log_data = (" ").join(data_hash)
                 recieved_log(config, log_file, log_data)
 
-            elif "OK" in data_hash and METHOD != "BYE":
+            elif "OK" in data_hash and METHOD != "BYE" and METHOD !=\
+            "REGISTER":
 
                 SIP_ACK = "ACK" + " sip:" + OPTION +\
                           " SIP/2.0\r\n\r\n"
