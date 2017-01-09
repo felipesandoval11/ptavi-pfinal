@@ -140,6 +140,11 @@ class SIPHandler(socketserver.DatagramRequestHandler):
         with open("active_clients.json", "w") as outfile:
             json.dump(self.my_dic, outfile, indent=4, sort_keys=True,
                       separators=(',', ':'))
+    
+    def proxy_header(self):
+        extra = "Via: SIP/2.0/UDP " + config[1] + ":" + config[2] +\
+                     ";rport;branch=Ptavi20162017Pfinal10End"
+        return extra
 
     def handle(self):
         """Handler to manage incoming users SIP request."""
@@ -151,7 +156,7 @@ class SIPHandler(socketserver.DatagramRequestHandler):
         print("-- RECIEVED REQUEST --\r\n" + line.decode('utf-8'))
 
         if line_str[0] == "REGISTER":
-            
+
             expire = line_str[4]
 
             if "Digest" not in line_str and int(expire) != 0:
@@ -159,12 +164,13 @@ class SIPHandler(socketserver.DatagramRequestHandler):
                                                      99999999999999999999)))
                 self.wfile.write(bytes("SIP/2.0 401 Unauthorized\r\n" +
                                        'WWW-Authenticate: Digest nonce="' +
-                                       self.nonce[0] + '"\r\n\r\n', 'utf-8'))
+                                       self.nonce[0] + "\r\n\r\n", 'utf-8'))
                 s_content = "SIP/2.0 401 Unauthorized WWW-Authenticate: " +\
                             'Digest nonce= "' + self.nonce[0] + '"'
                 sents_log(self.client_address, log_file, s_content)
 
             elif int(expire) == 0:
+
                 user = line_str[1].split(":")[1]
                 port = line_str[1].split(":")[2]
                 self.json2registered()
@@ -175,6 +181,7 @@ class SIPHandler(socketserver.DatagramRequestHandler):
                     print("TRYING TO DELETE... User not found.")
                 self.expired()
                 self.register2json()
+
             else:
 
                 hash_recieved = line_str[-1].split('"')[1]
@@ -225,8 +232,11 @@ class SIPHandler(socketserver.DatagramRequestHandler):
                     if self.find_user(user_to_send):
                         ip_serv = self.my_dic[user_to_send]["address"]
                         port_serv = self.my_dic[user_to_send]["port"]
+                        header_proxy = line.decode('utf-8').split("\r\n")
+                        header_proxy.insert(1, str(self.proxy_header()))
+                        header_proxy = ("\r\n").join(header_proxy)
                         recieved = send_to_uaserver(ip_serv, port_serv,
-                                                    line.decode('utf-8'))
+                                                    header_proxy)
                         self.wfile.write(bytes(recieved, "utf-8"))
                         log_hash = (" ").join(recieved.split())
                         sents_log(self.client_address, log_file, log_hash)
@@ -251,8 +261,11 @@ class SIPHandler(socketserver.DatagramRequestHandler):
             if self.find_user(user_to_send):
                 ip_serv = self.my_dic[user_to_send]["address"]
                 port_serv = self.my_dic[user_to_send]["port"]
+                header_proxy = line.decode('utf-8').split("\r\n")
+                header_proxy.insert(1, str(self.proxy_header()))
+                header_proxy = ("\r\n").join(header_proxy)
                 recieved = send_to_uaserver(ip_serv, port_serv,
-                                            line.decode('utf-8'))
+                                            header_proxy)
             else:
                 self.wfile.write(b"SIP/2.0 404 User Not Found\r\n\r\n")
                 s_content = "SIP/2.0 404 User Not Found"
