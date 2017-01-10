@@ -37,7 +37,6 @@ files = ['README.md',
          'mp32rtp',
          'cancion.mp3',
          'avanzadas.txt',
-         'passwords.txt',
          '.git']
 
 python_files = ['uaclient.py',
@@ -51,7 +50,7 @@ avanzadasDict = {
     u"Práctica realizada en inglés": 0.2,
     u"Integración de (c)vlc con hilos": 0.3,
     u"Consistencia frente a valores erróneos": 0.5,
-    u"Hilos para el envío de audio vía RTP": 0.7,
+    u"Hilos para el envío de audio vía RT": 0.7,
     u"Mecanismo de registro seguro": 1.0
     }
 
@@ -95,6 +94,8 @@ for file in student_file_list:
 
 if ficheros_entregados == len(files)-1:
     print "La entrega de la parte básica es correcta."
+else:
+    print "MAL"
     print
 
 if avanzadas:
