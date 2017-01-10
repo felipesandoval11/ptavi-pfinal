@@ -81,6 +81,13 @@ def recieved_log(config, log_file, sip_data):
                    ":" + str(config[1]) + ": " + sip_data + "\n")
 
 
+def proxy_header(config):
+    """An extra proxy header for SIP purposes."""
+    extra = "Via: SIP/2.0/UDP " + config[1] + ":" + config[2] +\
+            ";rport;branch=Ptavi20162017Pfinal10End"
+    return extra
+
+
 def send_to_uaserver(ip, port, data):
     """Initiate a socket to send to my UA server."""
     my_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -95,6 +102,9 @@ def send_to_uaserver(ip, port, data):
         if data.split()[0] != "ACK":
             recieved = my_socket.recv(1024).decode('utf-8')
             print("-- RECIEVED REQUEST --\r\n" + recieved)
+            pr_head = recieved.split("\r\n")
+            pr_head.insert(1, proxy_header(config))
+            recieved = ("\r\n").join(pr_head)
             recieved_log(log_connect, log_file, (" ").join(recieved.split()))
         my_socket.close()
     except ConnectionRefusedError:
@@ -140,11 +150,6 @@ class SIPHandler(socketserver.DatagramRequestHandler):
         with open("active_clients.json", "w") as outfile:
             json.dump(self.my_dic, outfile, indent=4, sort_keys=True,
                       separators=(',', ':'))
-    
-    def proxy_header(self):
-        extra = "Via: SIP/2.0/UDP " + config[1] + ":" + config[2] +\
-                     ";rport;branch=Ptavi20162017Pfinal10End"
-        return extra
 
     def handle(self):
         """Handler to manage incoming users SIP request."""
@@ -154,7 +159,6 @@ class SIPHandler(socketserver.DatagramRequestHandler):
         recieved_log(self.client_address, log_file, line_hash)
 
         print("-- RECIEVED REQUEST --\r\n" + line.decode('utf-8'))
-
         if line_str[0] == "REGISTER":
 
             expire = line_str[4]
@@ -222,7 +226,7 @@ class SIPHandler(socketserver.DatagramRequestHandler):
 
             self.json2registered()
             self.expired()
-            if line_str[0] == "INVITE": # IMPIDE SENDERS NO REGISTRADOS
+            if line_str[0] == "INVITE":  # IMPIDE SENDERS NO REGISTRADOS
                 sender = line_str[6].split("=")[1]
             else:
                 sender = line_str[1].split(":")[1]
@@ -233,7 +237,7 @@ class SIPHandler(socketserver.DatagramRequestHandler):
                         ip_serv = self.my_dic[user_to_send]["address"]
                         port_serv = self.my_dic[user_to_send]["port"]
                         header_proxy = line.decode('utf-8').split("\r\n")
-                        header_proxy.insert(1, str(self.proxy_header()))
+                        header_proxy.insert(1, proxy_header(config))
                         header_proxy = ("\r\n").join(header_proxy)
                         recieved = send_to_uaserver(ip_serv, port_serv,
                                                     header_proxy)
@@ -262,7 +266,7 @@ class SIPHandler(socketserver.DatagramRequestHandler):
                 ip_serv = self.my_dic[user_to_send]["address"]
                 port_serv = self.my_dic[user_to_send]["port"]
                 header_proxy = line.decode('utf-8').split("\r\n")
-                header_proxy.insert(1, str(self.proxy_header()))
+                header_proxy.insert(1, str(proxy_header(config)))
                 header_proxy = ("\r\n").join(header_proxy)
                 recieved = send_to_uaserver(ip_serv, port_serv,
                                             header_proxy)
