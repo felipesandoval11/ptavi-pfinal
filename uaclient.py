@@ -186,14 +186,14 @@ if __name__ == "__main__":
                 recieved_log(config, log_file, log_data)
 
             elif "OK" in data_hash and METHOD != "BYE" and METHOD !=\
-            "REGISTER":
+                 "REGISTER":
 
                 SIP_ACK = "ACK" + " sip:" + OPTION +\
                           " SIP/2.0\r\n\r\n"
                 my_socket.send(bytes(SIP_ACK, 'utf-8'))
                 print("-- SENDING AUDIO --\n")
-                send = "./mp32rtp -i " + data_hash[13] + " -p " +\
-                       data_hash[17] + " < " + config[-1]
+                send = "./mp32rtp -i " + data_hash[16] + " -p " +\
+                       data_hash[20] + " < " + config[-1]
                 os.system(send)
                 log_file.write(str(actual_time()) + " Sent to " +
                                data_hash[13] + ":" + data_hash[17] +
