@@ -1,5 +1,14 @@
 -- IMPLEMENTACIONES ADICIONALES: --
 
+(0) En la implementación avanzada de  "Cabecera Proxy", se le coloca una       
+cabecera opcional:
+    "Via: SIP/2.0/UDP 127.0.0.1::8450;rport;branch=Ptavi20162017Pfinal10End"
+  Y es reconocida por los algoritmos de wireshark en las trazas SIP.
+Dicha cabecera adicional SOLAMENTE se coloca en aquellos mensajes que pasen a través del proxy hacía un cliente distinto al emisor de dicho mensaje.
+(ej. INVITE, ACK, BYE, TRYING...)
+
+[NOTA: en las captura exitosa llamada.libpcap no se encuentra reflejado ningún apartado de los avanzados]
+
 (1) Como medida de seguridad para evitar el spoofing en la comunicación, si se le pasa al cliente "ACK" como método éste no se iniciará y mostrará por pantalla el mensaje: "Usage: python uaclient.py config method option".
 
 (2) EN EL PROXY REGISTRAR: Si todo marcha bien y al momento de establecer la conexión con el UAserver éste no ha sido lanzado se le responderá al cliente que hizo la petición con el mensaje de error "SIP/2.0 504 Server Time-out". Además se imprimirá por pantalla una alerta que me indicará que el UAServer no ha sido lanzado.
@@ -29,13 +38,28 @@
         (el rango de las IPs va desde la 0.0.0.0 hasta la 255.255.255.255)
 [En caso de error se obtendrá como respuesta el código de error 400]
     *   Si un cliente no registrado (usuario activo) envia un INVITE o un BYE
-        a un usuario se le rechazará su petición
+        a un usuario se le rechazará su petición y se contestará con código
+        de respuesta 404
 [Casos más rebuscados]
-    *   En caso que el fichero passwords no exista todas las contraseñas 
-        tendrás como valor un número aleatorio de 6 dígitos. Nunca se podrá 
+    *   En caso de que el fichero passwords no exista, todas las contraseñas 
+        tendrán como valor un número aleatorio de 6 dígitos. Nunca se podrá 
         establecer la conversación.
 
 (8) El programa funciona si no se pasan en el fichero xml los parámetros 
     obligatorios, dando un valor por defecto a los valores necesarios.
+
+(9) [COMO MÉTODO CORRECTIVO] La respuesta del proxy 401 no era codificada de     
+    una manera correcta por wireshark, esto se debía a que la sintaxis de la     
+    respuesta no estaba escrita de manera correcta. La forma correcta es:
+    
+    SIP/2.0 401 Unauthorized
+    WWW-Authenticate: Digest nonce="898989898798989898989"
+    
+    (nótese el "-" después del WWW)
+
+(10) Todos los programas han sido analizados con la herramienta de optimización     
+     de calidad "pylint".
+
+(11) Práctica realizada en inglés en su totalidad.
 
 Realizado por Felipe Sandoval Sibada.
