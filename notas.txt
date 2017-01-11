@@ -65,9 +65,18 @@ Dicha cabecera adicional SOLAMENTE se coloca en aquellos mensajes que pasen a tr
 (12) Se recuperan los usuarios activos así el servidor sufra una caída y los     
      INVITES son tomados en cuenta si el usuario se ha registrado previamente.
 
-(12) Parte de Threads implementada. Al momento de terminar un hilo de ejecución 
+(13) Parte de Threads implementada. Al momento de terminar un hilo de ejecución 
      se ejecutará el código: "killall vlc 2> /dev/null" (o bien mp32rtp) y así 
      de esta manera no se imprimirá nada por pantalla en caso que no estuviese 
      en ejecución
+
+(14) Para que no existan problemas en los logs es aconsejable lanzar primero 
+     los clientes antes que los servidores de los UA.
+
+(15) Al momento de probar la práctica, el apartado avanzado "Hilos para el 
+     envío de audio vía RTP" se implementa correctamente con la excepción del
+     mensaje de error "480 Temporarily Unavailable". No logré entender esa 
+     parte de Threads y al ejecutar el comando "killall" se "matan" todos los 
+     procesos que se ejecuten. 
 
 Realizado por Felipe Sandoval Sibada.
