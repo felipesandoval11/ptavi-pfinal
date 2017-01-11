@@ -62,4 +62,12 @@ Dicha cabecera adicional SOLAMENTE se coloca en aquellos mensajes que pasen a tr
 
 (11) Práctica realizada en inglés en su totalidad.
 
+(12) Se recuperan los usuarios activos así el servidor sufra una caída y los     
+     INVITES son tomados en cuenta si el usuario se ha registrado previamente.
+
+(12) Parte de Threads implementada. Al momento de terminar un hilo de ejecución 
+     se ejecutará el código: "killall vlc 2> /dev/null" (o bien mp32rtp) y así 
+     de esta manera no se imprimirá nada por pantalla en caso que no estuviese 
+     en ejecución
+
 Realizado por Felipe Sandoval Sibada.
