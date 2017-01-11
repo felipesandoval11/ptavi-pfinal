@@ -1,28 +1,52 @@
 -- IMPLEMENTACIONES ADICIONALES: --
 
-(0) En la implementación avanzada de  "Cabecera Proxy", se le coloca una       
-cabecera opcional:
+(0) En la implementación avanzada de  "Cabecera Proxy", se le coloca una
+    cabecera opcional:
     "Via: SIP/2.0/UDP 127.0.0.1::8450;rport;branch=Ptavi20162017Pfinal10End"
-  Y es reconocida por los algoritmos de wireshark en las trazas SIP.
-Dicha cabecera adicional SOLAMENTE se coloca en aquellos mensajes que pasen a través del proxy hacía un cliente distinto al emisor de dicho mensaje.
-(ej. INVITE, ACK, BYE, TRYING...)
+    Y es reconocida por los algoritmos de wireshark en las trazas SIP.
+    Dicha cabecera adicional SOLAMENTE se coloca en aquellos mensajes que pasen
+    a través del proxy hacía un cliente distinto al emisor de dicho mensaje.
+    (ej. INVITE, ACK, BYE, TRYING...)
 
-[NOTA: en las captura exitosa llamada.libpcap no se encuentra reflejado ningún apartado de los avanzados]
+[NOTA: en las captura exitosa llamada.libpcap no se encuentra reflejado
+ningún apartado de los avanzados]
 
-(1) Como medida de seguridad para evitar el spoofing en la comunicación, si se le pasa al cliente "ACK" como método éste no se iniciará y mostrará por pantalla el mensaje: "Usage: python uaclient.py config method option".
+(1) Como medida de seguridad para evitar el spoofing en la comunicación, si se
+    le pasa al cliente "ACK" como método éste no se iniciará y mostrará por
+    pantalla el mensaje: "Usage: python uaclient.py config method option".
 
-(2) EN EL PROXY REGISTRAR: Si todo marcha bien y al momento de establecer la conexión con el UAserver éste no ha sido lanzado se le responderá al cliente que hizo la petición con el mensaje de error "SIP/2.0 504 Server Time-out". Además se imprimirá por pantalla una alerta que me indicará que el UAServer no ha sido lanzado.
+(2) EN EL PROXY REGISTRAR: Si todo marcha bien y al momento de establecer la
+    conexión con el UAserver éste no ha sido lanzado se le responderá al
+    cliente que hizo la petición con el mensaje de error "SIP/2.0 504 Server
+    Time-out". Además se imprimirá por pantalla una alerta que me indicará que
+    el UAServer no ha sido lanzado.
 
-(3) EN EL PROXY REGISTRAR: Si la contraseña enviada por el cliente no coincide con la contraseña que figura en el documento de passwords se imprimirá por pantalla una alerta que me indicará que ha ocurrido un acceso denegado por un error en la autenticación de credenciales. Además, se enviará al cliente un mensaje de error "SIP/2.0 400 Bad Request" y no se registrará como usuario activo.
+(3) EN EL PROXY REGISTRAR: Si la contraseña enviada por el cliente no coincide
+    con la contraseña que figura en el documento de passwords se imprimirá por
+    pantalla una alerta que me indicará que ha ocurrido un acceso denegado por
+    un error en la autenticación de credenciales. Además, se enviará al cliente
+    un mensaje de error "SIP/2.0 400 Bad Request" y no se registrará como
+    usuario activo.
 
-(4) Si el metodo pasado por línea de comandos es correcto pero está escrito en minúsculas SIEMPRE se obtendrá un mensaje de error "SIP/2.0 400 Bad Request".
+(4) Si el metodo pasado por línea de comandos es correcto pero está escrito en
+    minúsculas SIEMPRE se obtendrá un mensaje de error "SIP/2.0 400 Bad 
+    Request".
 
-(5) Se generará un archivo con extensión .json bajo el nombre "active_clients.json" y contendrá información actualizada de los usuarios activos actualmente. Además, cada vez que se reciba un mensaje en el proxy registrar se actualizará su información de caducidad, siendo eliminados si su tiempo se encontrase expirado.
+(5) Se generará un archivo con extensión .json bajo el nombre
+    "active_clients.json" y contendrá información actualizada de los usuarios
+    activos actualmente. Además, cada vez que se reciba un mensaje en el proxy
+    registrar se actualizará su información de caducidad, siendo eliminados si
+    su tiempo se encontrase expirado.
 
-(6) Es posible añadir todos los clientes que se desee mientras se respete el formato del archivo passwords y se añadan tanto el login o usuario y su contraseña.
+(6) Es posible añadir todos los clientes que se desee mientras se respete el
+    formato del archivo passwords y se añadan tanto el login o usuario y su
+    contraseña.
 
-(7) En la implementación avanzada de "Consistencia del servidor proxy/registrar frente a valores erróneos" se han implementado las siguientes medidas:
-[En caso de error en los parámetros el programa no se ejecutaría e imprimirá por pantalla "Usage: python nombre-programa.py config <method> <option>"]
+(7) En la implementación avanzada de "Consistencia del servidor proxy/registrar
+    frente a valores erróneos" se han implementado las siguientes medidas:
+    [En caso de error en los parámetros el programa no se ejecutaría e
+    imprimirá por pantalla "Usage: python nombre-programa.py config 
+    <method><option>"]
     *   Si se pasa como nombre de método "ACK"
     *   Si no es un entero el expire del Register
     *   Si hay más valores de los necesarios en la línea de comandos 
