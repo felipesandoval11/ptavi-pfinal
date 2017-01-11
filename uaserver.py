@@ -111,6 +111,7 @@ class SIPHandler(socketserver.DatagramRequestHandler):
 
     def handle(self):
         """Handler to manage SIP request."""
+        log_file = open(config[7], "a")
         line = self.rfile.read()
         line_str = line.decode('utf-8').split()
         line_hash = (" ").join(line_str)
@@ -189,6 +190,7 @@ class SIPHandler(socketserver.DatagramRequestHandler):
 
         print("-- RECIEVED REQUEST --\r\n" + line.decode('utf-8'))
 
+        log_file.close
 
 def open_log(config):
     """Opening my log file previously opened by the uaclient."""
@@ -198,6 +200,7 @@ def open_log(config):
     except FileNotFoundError:   # When the file does not exists.
         log_file = open(config[7], "w")
         log_file.write(str(actual_time()) + " Starting...\n")
+        log_file.close
     return log_file
 
 
