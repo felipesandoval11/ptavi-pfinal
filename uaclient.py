@@ -112,7 +112,7 @@ def recieved_log(config, log_file, sip_data):
 
 def cvlc(dest, port):
     """To execute CVLC in Thread."""
-    command = 'cvlc rtp://@' + dest + ':' + port
+    command = 'cvlc rtp://@' + dest + ':' + port + " 2> /dev/null"
     os.system(command)
 
 
@@ -219,14 +219,16 @@ if __name__ == "__main__":
                 log_file.write(str(actual_time()) + " Sent to " +
                                data_hash[16] + ":" + data_hash[20] +
                                ": AUDIO FILE " + config[-1] + "\n")
-
                 print("-- RECIEVING AUDIO IN PORT " + config[4] + "--\n")
-
+                print("-- Wait.... please--\n")
+                # for ending of Threads. This is VITAL to end the socket.
+                time.sleep(13)
+                os.system('killall mp32rtp 2> /dev/null')
+                os.system('killall vlc 2> /dev/null')
             elif METHOD == "BYE":
 
                 if "OK" in data_hash:
-                    os.system('killall mp32rtp 2> /dev/null')
-                    os.system('killall vlc 2> /dev/null')
+
                     log_file.write(str(actual_time()) + " Finishing.\n")
 
             my_socket.close()
