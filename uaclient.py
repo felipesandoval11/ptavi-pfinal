@@ -11,6 +11,7 @@ import sys
 import random
 import os
 import hashlib
+import threading
 
 
 try:
@@ -109,6 +110,18 @@ def recieved_log(config, log_file, sip_data):
                    ":" + config[6] + ": " + sip_data + "\n")
 
 
+def cvlc(dest, port):
+    """To execute CVLC in Thread."""
+    command = 'cvlc rtp://@' + dest + ':' + port
+    os.system(command)
+
+
+def mp32rtp(dest, port, music):
+    """To execute mp32rtp in Thread."""
+    command = "./mp32rtp -i " + dest + " -p " + port + " < " + music
+    os.system(command)
+
+
 if __name__ == "__main__":
     try:
         parser = make_parser()
@@ -192,9 +205,17 @@ if __name__ == "__main__":
                           " SIP/2.0\r\n\r\n"
                 my_socket.send(bytes(SIP_ACK, 'utf-8'))
                 print("-- SENDING AUDIO --\n")
-                send = "./mp32rtp -i " + data_hash[16] + " -p " +\
-                       data_hash[20] + " < " + config[-1]
-                os.system(send)
+                # advanced part cvlc with Threads
+                thr_cvlc = threading.Thread(target=cvlc, args=(data_hash[16],
+                                                               data_hash[20]))
+                thr_mp32rtp = threading.Thread(target=mp32rtp,
+                                               args=(data_hash[16],
+                                                     data_hash[20],
+                                                     config[-1]))
+                thr_mp32rtp.start()
+                time.sleep(0.2)
+                thr_cvlc.start()
+
                 log_file.write(str(actual_time()) + " Sent to " +
                                data_hash[13] + ":" + data_hash[17] +
                                ": AUDIO FILE " + config[-1] + "\n")
@@ -203,6 +224,8 @@ if __name__ == "__main__":
             elif METHOD == "BYE":
 
                 if "OK" in data_hash:
+                    os.system('killall mp32rtp 2> /dev/null')
+                    os.system('killall vlc 2> /dev/null')
                     log_file.write(str(actual_time()) + " Finishing.\n")
 
             my_socket.close()
