@@ -104,8 +104,8 @@ def send_to_uaserver(ip, port, data):
             print("-- RECIEVED REQUEST --\r\n" + recieved)
             pr_head = recieved.split("\r\n")
             pr_head.insert(1, proxy_header(config))
-            recieved = ("\r\n").join(pr_head)
             recieved_log(log_connect, log_file, (" ").join(recieved.split()))
+            recieved = ("\r\n").join(pr_head)
         my_socket.close()
     except ConnectionRefusedError:
         print("-- ALERT! -- Connection Refused in port " + port +
@@ -179,6 +179,7 @@ class SIPHandler(socketserver.DatagramRequestHandler):
                 port = line_str[1].split(":")[2]
                 self.json2registered()
                 self.wfile.write(b"SIP/2.0 200 OK\r\n\r\n")
+                sents_log(self.client_address, log_file, "SIP/2.0 200 OK")
                 try:
                     del self.my_dic[user]
                 except:
@@ -230,6 +231,7 @@ class SIPHandler(socketserver.DatagramRequestHandler):
                 sender = line_str[6].split("=")[1]
             else:
                 sender = line_str[1].split(":")[1]
+
             if self.find_user(sender):
                 if len(line_str) != 2:  # and self.find_user(sender):
                     user_to_send = line_str[1].split(":")[1]
