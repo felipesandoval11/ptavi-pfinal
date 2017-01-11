@@ -217,8 +217,9 @@ if __name__ == "__main__":
                 thr_cvlc.start()
 
                 log_file.write(str(actual_time()) + " Sent to " +
-                               data_hash[13] + ":" + data_hash[17] +
+                               data_hash[16] + ":" + data_hash[20] +
                                ": AUDIO FILE " + config[-1] + "\n")
+
                 print("-- RECIEVING AUDIO IN PORT " + config[4] + "--\n")
 
             elif METHOD == "BYE":
