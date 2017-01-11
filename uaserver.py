@@ -96,6 +96,7 @@ def cvlc(dest, port):
     """To execute CVLC in Thread."""
     command = 'cvlc rtp://@' + dest + ':' + port
     os.system(command)
+    print("\n executing in thread the extra vlc... \n")
 
 
 def mp32rtp(dest, port, music):
@@ -191,6 +192,7 @@ class SIPHandler(socketserver.DatagramRequestHandler):
         print("-- RECIEVED REQUEST --\r\n" + line.decode('utf-8'))
 
         log_file.close
+
 
 def open_log(config):
     """Opening my log file previously opened by the uaclient."""
